@@ -1,17 +1,35 @@
 #!/usr/bin/env python
 
 import csv
+import logging
 import sys
 
 from functools import partial
-from tempfile import NamedTemporaryFile
+from optparse import OptionParser, make_option as Opt
 
 import lxml.html
 
 tempfile = partial(NamedTemporaryFile, dir=".", prefix="result-", delete=False)
 CLIMATEURL = "http://www.wunderground.com/history/airport/{airport}/{year}/{month}/{day}/DailyHistory.html"
 
+try:
+    NullHandler = logging.NullHandler
+except AttributeError:
+    class NullHandler(logging.Handler):
+        def emit(self, record): pass
+
+log = logging.getLogger(__name__)
+log.addHandler(NullHandler())
+
 def main():
+    optparser = OptionParser(option_list=options)
+    (opts, args) = optparser.parse_args()
+
+    verbose = int(opts.verbose)
+    if opts.verbose >= 0:
+        log.addHandler(logging.StreamHandler())
+        log.level = max(1, logging.WARNING - (10 * verbose))
+
     airport = sys.argv[1]
     dates = sys.argv[2:]
 
@@ -30,6 +48,10 @@ def main():
                 )
             out.writerow(row)
     sys.stdout.write("{0}\n".format(outfile.name))
+
+options = [
+    Opt("-v", "--verbose", default=0, help="increase logging"),
+]
 
 def parsedate(date):
     month, day, year = (int(x) for x in date.split("/", 2))
