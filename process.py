@@ -9,7 +9,6 @@ from optparse import OptionParser, make_option as Opt
 
 import lxml.html
 
-tempfile = partial(NamedTemporaryFile, dir=".", prefix="result-", delete=False)
 CLIMATEURL = "http://www.wunderground.com/history/airport/{airport}/{year}/{month}/{day}/DailyHistory.html"
 
 try:
@@ -33,21 +32,20 @@ def main():
     airport = sys.argv[1]
     dates = sys.argv[2:]
 
-    with tempfile() as outfile:
-        out = csv.writer(outfile)
+    dates = sys.stdin
+    out = csv.writer(sys.stdout)
 
-        for date in dates:
-            id, date = date.split(",", 1)
-            year, month, day = parsedate(date.strip())
-            result = getclimate(airport, year, month, day)
-            row = (id, date, "MISSING", "MISSING")
-            if result:
-                row = (id, date,
-                    result["temperature.max.actual"],
-                    result["temperature.mean.actual"]
-                )
-            out.writerow(row)
-    sys.stdout.write("{0}\n".format(outfile.name))
+    for date in dates:
+        id, date = date.strip().split(",", 1)
+        year, month, day = parsedate(date.strip())
+        result = getclimate(airport, year, month, day)
+        row = (id, date, "MISSING", "MISSING")
+        if result:
+            row = (id, date,
+                result["temperature.max.actual"],
+                result["temperature.mean.actual"]
+            )
+        out.writerow(row)
 
 options = [
     Opt("-v", "--verbose", default=0, help="increase logging"),
